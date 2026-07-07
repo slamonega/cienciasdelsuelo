@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Humedad de Suelo SAOCOM - Leaflet</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        html, body, #map {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #info-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            max-width: 250px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div id="info-panel">
+        <h4>Capa: Humedad de Suelo SAOCOM</h4>
+        <p>Datos provistos por los Geoservicios OGC de la CONAE.</p>
+        <p>Muestra la estimación del contenido volumétrico de agua en el suelo (promedio hasta los 50cm).</p>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Inicializar el mapa centrado en la zona pampeana de Argentina
+        var map = L.map('map').setView([-36.5, -60.5], 6);
+
+        // 2. Definir mapa base (OpenStreetMap estándar)
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. Conectarse al WMS de Humedad de Suelo de CONAE
+        // Capa de ejemplo: DSS_MSMKR_1 (Mapa Krigeado del día más reciente disponible)
+        var saocomHumedad = L.tileLayer.wms('https://geoservicios.conae.gov.ar/geoserver/HumedadDeSuelos/wms', {
+            layers: 'HumedadDeSuelos:DSS_MSMKR_1', // Capa Krigeada del día 1 (más actual)
+            format: 'image/png',
+            transparent: true,
+            version: '1.1.1',
+            attribution: '© CONAE - Misión SAOCOM',
+            opacity: 0.75 // Ajustar transparencia para ver el mapa base de fondo
+        }).addTo(map);
+
+        // 4. Control de capas interactivo (para prender y apagar)
+        var baseMaps = {
+            "OpenStreetMap": osm
+        };
+
+        var overlayMaps = {
+            "Humedad de Suelo SAOCOM (Más reciente)": saocomHumedad
+        };
+
+        L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+    </script>
+</body>
+</html>
