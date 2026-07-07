@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Humedad de Suelo SAOCOM - Leaflet</title>
+    <title>Humedad de Suelo SAOCOM + Sentinel-2 - Leaflet</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
@@ -44,11 +44,23 @@
         // 1. Inicializar el mapa centrado en la zona pampeana de Argentina
         var map = L.map('map').setView([-36.5, -60.5], 6);
 
-        // 2. Definir mapa base (OpenStreetMap estándar)
+        // 2. Mapas base
         var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        });
+
+        var sentinel2 = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{x}/{y}.jpg', {
+            maxZoom: 18,
+            attribution: 'Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025)'
+        });
+
+        var ignArgenmap = L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© <a href="https://www.ign.gob.ar">IGN Argentina</a>'
+        });
+
+        osm.addTo(map);
 
         // 3. Conectarse al WMS de Humedad de Suelo de CONAE
         // Capa de ejemplo: DSS_MSMKR_1 (Mapa Krigeado del día más reciente disponible)
@@ -63,7 +75,9 @@
 
         // 4. Control de capas interactivo (para prender y apagar)
         var baseMaps = {
-            "OpenStreetMap": osm
+            "OpenStreetMap": osm,
+            "Sentinel-2 Cloudless 2025": sentinel2,
+            "IGN Argentina Argenmap": ignArgenmap
         };
 
         var overlayMaps = {
