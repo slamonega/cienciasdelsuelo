@@ -24,8 +24,12 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             font-family: Arial, sans-serif;
             font-size: 12px;
-            max-width: 250px;
+            max-width: 280px;
         }
+        #info-panel h4 { margin: 0 0 5px 0; }
+        #info-panel p { margin: 3px 0; }
+        #info-panel .leyenda { margin-top: 6px; border-top: 1px solid #ddd; padding-top: 4px; font-size: 11px; color: #555; }
+        .leaflet-control-layers { overflow-y: auto; max-height: 80vh; }
     </style>
 </head>
 <body>
@@ -33,15 +37,64 @@
     <div id="map"></div>
 
     <div id="info-panel">
-        <h4>Capa: Humedad de Suelo SAOCOM</h4>
-        <p>Datos provistos por los Geoservicios OGC de la CONAE.</p>
-        <p>Muestra la estimación del contenido volumétrico de agua en el suelo (promedio hasta los 50cm).</p>
+        <h4>Humedad de Suelo SAOCOM</h4>
+        <p>Datos CONAE - Estimación del contenido volumétrico de agua en el suelo (promedio hasta 50cm).</p>
+        <div class="leyenda" id="layer-desc">Seleccioná una capa base y activá las superpuestas disponibles.</div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. Inicializar el mapa centrado en la zona pampeana de Argentina
+        // ---- TileLayer custom para ESRI Sentinel-2 ImageServer ----
+        L.TileLayer.SentinelIndex = L.TileLayer.extend({
+            options: {
+                renderingRule: '{"rasterFunction":"Natural Color with DRA"}',
+                maxZoom: 14,
+                minZoom: 2,
+                attribution: 'Source: Esri, European Commission, ESA, AWS'
+            },
+
+            initialize: function (options) {
+                L.TileLayer.prototype.initialize.call(this, undefined, options);
+                this._esriUrl = 'https://sentinel.arcgis.com/arcgis/rest/services/Sentinel2/ImageServer/exportImage';
+                this._worldMetersMax = 20037508.342789244;
+                this._worldMetersRange = this._worldMetersMax * 2;
+            },
+
+            getTileUrl: function (coords) {
+                var z = coords.z;
+                var x = coords.x;
+                var y = coords.y;
+                var ts = this.options.tileSize || 256;
+                var numTiles = Math.pow(2, z);
+                var tws = this._worldMetersRange / numTiles;
+
+                var xmin = -this._worldMetersMax + x * tws;
+                var xmax = xmin + tws;
+                var ymax = this._worldMetersMax - y * tws;
+                var ymin = ymax - tws;
+
+                var bbox = [xmin.toFixed(4), ymin.toFixed(4), xmax.toFixed(4), ymax.toFixed(4)].join(',');
+                var rule = encodeURIComponent(this.options.renderingRule);
+
+                return this._esriUrl
+                    + '?bbox=' + bbox
+                    + '&bboxSR=102100'
+                    + '&size=' + ts + ',' + ts
+                    + '&imageSR=102100'
+                    + '&format=png'
+                    + '&interpolation=RSP_BilinearInterpolation'
+                    + '&renderingRule=' + rule
+                    + '&f=image';
+            }
+        });
+
+        L.tileLayer.sentinelIndex = function (options) {
+            return new L.TileLayer.SentinelIndex(options);
+        };
+        // ----------------------------------------------------------
+
+        // 1. Inicializar el mapa
         var map = L.map('map').setView([-36.5, -60.5], 6);
 
         // 2. Mapas base
@@ -63,8 +116,43 @@
 
         osm.addTo(map);
 
-        // 3. Conectarse al WMS de Humedad de Suelo de CONAE
-        // Capa de ejemplo: DSS_MSMKR_1 (Mapa Krigeado del día más reciente disponible)
+        // 3. Capas Sentinel-2 derivadas para ciencias del suelo (vía ESRI ImageServer)
+        var s2NDVI = L.tileLayer.sentinelIndex({
+            renderingRule: '{"rasterFunction":"NDVI Colormap"}',
+            maxZoom: 14,
+            minZoom: 2,
+            attribution: 'NDVI | Source: Esri, European Commission, ESA, AWS'
+        });
+
+        var s2Infrared = L.tileLayer.sentinelIndex({
+            renderingRule: '{"rasterFunction":"Color Infrared with DRA"}',
+            maxZoom: 14,
+            minZoom: 2,
+            attribution: 'Color IR | Source: Esri, European Commission, ESA, AWS'
+        });
+
+        var s2Agriculture = L.tileLayer.sentinelIndex({
+            renderingRule: '{"rasterFunction":"Agriculture with DRA"}',
+            maxZoom: 14,
+            minZoom: 2,
+            attribution: 'Agriculture | Source: Esri, European Commission, ESA, AWS'
+        });
+
+        var s2SWIR = L.tileLayer.sentinelIndex({
+            renderingRule: '{"rasterFunction":"Short-wave Infrared with DRA"}',
+            maxZoom: 14,
+            minZoom: 2,
+            attribution: 'SWIR | Source: Esri, European Commission, ESA, AWS'
+        });
+
+        var s2Geology = L.tileLayer.sentinelIndex({
+            renderingRule: '{"rasterFunction":"Geology with DRA"}',
+            maxZoom: 14,
+            minZoom: 2,
+            attribution: 'Geology | Source: Esri, European Commission, ESA, AWS'
+        });
+
+        // 4. WMS SAOCOM Humedad de Suelo
         var saocomHumedad = L.tileLayer.wms('https://geoservicios3.conae.gov.ar/geoserver/HumedadDeSuelos/wms', {
             layers: 'DSS_MSMKR_1',
             styles: 'estilo_DSS_MSM',
@@ -75,7 +163,7 @@
             opacity: 0.75
         }).addTo(map);
 
-        // 4. Control de capas interactivo (para prender y apagar)
+        // 5. Control de capas
         var baseMaps = {
             "OpenStreetMap": osm,
             "Sentinel-2 Cloudless 2025": sentinel2,
@@ -83,10 +171,32 @@
         };
 
         var overlayMaps = {
-            "Humedad de Suelo SAOCOM (Más reciente)": saocomHumedad
+            "Humedad de Suelo SAOCOM": saocomHumedad,
+            "S2 NDVI (índice de vegetación)": s2NDVI,
+            "S2 Falso Color IR (vegetación)": s2Infrared,
+            "S2 Agricultura (SWIR-NIR-Azul)": s2Agriculture,
+            "S2 SWIR (humedad/mineralogía)": s2SWIR,
+            "S2 Geología (composición suelo)": s2Geology
         };
 
         L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+
+        // 6. Actualizar descripción según capa activa
+        var descripciones = {
+            "S2 NDVI (índice de vegetación)": "NDVI: (NIR-Rojo)/(NIR+Rojo). Evalúa vigor vegetal, cobertura del suelo y biomasa. Útil para detectar suelos desnudos, estrés hídrico y residuos de cosecha.",
+            "S2 Falso Color IR (vegetación)": "Falso Color IR (NIR, Rojo, Verde). La vegetación sana aparece en rojo/violeta. Los suelos desnudos en tonos claros. Ideal para delimitar áreas con cobertura vegetal.",
+            "S2 Agricultura (SWIR-NIR-Azul)": "Agricultura (SWIR1, NIR, Azul). Vegetación vigorosa en verde brillante, suelos desnudos en marrón. Resalta diferencias en humedad superficial y contenido de arcilla.",
+            "S2 SWIR (humedad/mineralogía)": "SWIR (SWIR2, SWIR1, Rojo). Sensible al contenido de agua en suelo y minerales arcillosos. Útil para mapear humedad edáfica y composición mineralógica.",
+            "S2 Geología (composición suelo)": "Geología (SWIR2, SWIR1, Azul). Destaca diferencias en composición mineral del suelo, óxidos de hierro y carbonatos. Ayuda a identificar materiales parentales.",
+            "Humedad de Suelo SAOCOM": "Humedad del perfil de suelo hasta 50cm (producto krigeado). Estimación del contenido volumétrico de agua (m³/m³) derivado de datos SAOCOM banda-L."
+        };
+
+        var layerDesc = document.getElementById('layer-desc');
+
+        map.on('overlayadd', function (e) {
+            var d = descripciones[e.name];
+            if (d) layerDesc.textContent = d;
+        });
     </script>
 </body>
 </html>
