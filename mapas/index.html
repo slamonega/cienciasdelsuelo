@@ -52,13 +52,13 @@
 
         // 3. Conectarse al WMS de Humedad de Suelo de CONAE
         // Capa de ejemplo: DSS_MSMKR_1 (Mapa Krigeado del día más reciente disponible)
-        var saocomHumedad = L.tileLayer.wms('https://geoservicios.conae.gov.ar/geoserver/HumedadDeSuelos/wms', {
-            layers: 'HumedadDeSuelos:DSS_MSMKR_1', // Capa Krigeada del día 1 (más actual)
+        var saocomHumedad = L.tileLayer.wms('https://geoservicios3.conae.gov.ar/geoserver/HumedadDeSuelos/wms', {
+            layers: 'DSS_MSMKR_1',
             format: 'image/png',
             transparent: true,
             version: '1.1.1',
             attribution: '© CONAE - Misión SAOCOM',
-            opacity: 0.75 // Ajustar transparencia para ver el mapa base de fondo
+            opacity: 0.75
         }).addTo(map);
 
         // 4. Control de capas interactivo (para prender y apagar)
