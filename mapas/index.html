@@ -50,13 +50,14 @@
             attribution: '© OpenStreetMap contributors'
         });
 
-        var sentinel2 = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{x}/{y}.jpg', {
+        var sentinel2 = L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg', {
             maxZoom: 18,
             attribution: 'Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025)'
         });
 
         var ignArgenmap = L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG:3857@png/{z}/{x}/{y}.png', {
             maxZoom: 18,
+            tms: true,
             attribution: '© <a href="https://www.ign.gob.ar">IGN Argentina</a>'
         });
 
@@ -66,6 +67,7 @@
         // Capa de ejemplo: DSS_MSMKR_1 (Mapa Krigeado del día más reciente disponible)
         var saocomHumedad = L.tileLayer.wms('https://geoservicios3.conae.gov.ar/geoserver/HumedadDeSuelos/wms', {
             layers: 'DSS_MSMKR_1',
+            styles: 'estilo_DSS_MSM',
             format: 'image/png',
             transparent: true,
             version: '1.1.1',
