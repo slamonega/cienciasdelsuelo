@@ -1,0 +1,10 @@
+{
+  "name": "Suelo & Raíz",
+  "short_name": "Suelo&Raíz",
+  "description": "Introducción a las Ciencias del Suelo",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#eef0eb",
+  "theme_color": "#1a2e1a",
+  "icons": []
+}
